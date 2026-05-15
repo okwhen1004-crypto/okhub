@@ -336,15 +336,21 @@ canvas { max-width: 100%; }
 .status-badge { display:inline-flex; align-items:center; justify-content:center;
   min-width:64px; height:22px; padding:0 10px; border-radius:11px; font-size:11px; font-weight:700;
   white-space:nowrap; letter-spacing:0.2px; cursor:default; user-select:none; flex-shrink:0; }
-.status-badge.all    { background:#e8f4fb; color:#1565c0; border:1px solid #90caf9; }
-.status-badge.unsent { background:#fff8e1; color:#bf6f00; border:1px solid #ffd54f; }
-.status-badge.s1     { background:#e8f5e9; color:#1b5e20; border:1px solid #66bb6a; }
-.status-badge.s2     { background:#e0f2f1; color:#004d40; border:1px solid #26a69a; }
-.status-badge.cancel { background:#fce8e8; color:#b71c1c; border:1px solid #ef9a9a; }
-.status-badge.req    { background:#fff3e0; color:#bf3d00; border:1px solid #ffab91; }
-.status-badge.baeji  { background:#fff9c4; color:#f57f17; border:1px solid #fbc02d; }
-.status-badge.tao    { background:#ffe0b2; color:#bf6700; border:1px solid #ffb74d; }
-.status-badge.recv   { background:#ffe0b2; color:#bf6700; border:1px solid #ffb74d; }
+/* ★ 상태별 색상 - 한눈에 구분되게 / 진한 톤 적용 */
+.status-badge.all    { background:#E3F2FD; color:#0D47A1; border:1.5px solid #1976D2; }              /* 주문전: 파랑 */
+.status-badge.unsent { background:#FFF59D; color:#3E2723; border:1.5px solid #FBC02D; font-weight:800; } /* 주문완료: 노랑 */
+.status-badge.req    { background:#D32F2F; color:#FFFFFF; border:2px solid #B71C1C; font-weight:900; box-shadow:0 0 0 2px rgba(211,47,47,0.25); animation:pulseReq 1.5s ease-in-out infinite; } /* 주문요청중: 강렬한 빨강 + 깜빡임 */
+.status-badge.baeji  { background:#FF6F00; color:#FFFFFF; border:1.5px solid #E65100; font-weight:800; } /* 신청서작성: 진한 주황 */
+.status-badge.tao    { background:#7B1FA2; color:#FFFFFF; border:1.5px solid #4A148C; font-weight:800; } /* 현지배송: 보라 */
+.status-badge.recv   { background:#00897B; color:#FFFFFF; border:1.5px solid #004D40; font-weight:800; } /* 배대지수령: 청록 */
+.status-badge.s1     { background:#43A047; color:#FFFFFF; border:1.5px solid #1B5E20; font-weight:800; } /* 배송: 진한 초록 */
+.status-badge.s2     { background:#37474F; color:#FFFFFF; border:1.5px solid #263238; font-weight:800; } /* 판매완료: 진한 회색 */
+.status-badge.cancel { background:#000000; color:#FF5252; border:1.5px solid #B71C1C; font-weight:800; text-decoration:line-through; } /* 주문취소: 검정+빨강선 */
+
+@keyframes pulseReq {
+  0%, 100% { box-shadow:0 0 0 2px rgba(211,47,47,0.25); }
+  50%      { box-shadow:0 0 0 6px rgba(211,47,47,0.0); }
+}
 .source-badge { display:inline-flex; align-items:center; gap:4px; padding:2px 8px 2px 4px; border-radius:20px; font-size:11px; font-weight:700; white-space:nowrap; }
 .source-badge img { width:16px; height:16px; border-radius:3px; object-fit:contain; flex-shrink:0; }
 .source-badge.smartstore { background:#03C75A18; color:#03873d; border:1px solid #03C75A40; }
@@ -1323,6 +1329,34 @@ body {
 .summary-card.month { background: linear-gradient(135deg, #9FE1CB 0%, #1D9E75 100%); }
 @media (max-width: 700px) {
   .summary-cards-grid { grid-template-columns: 1fr !important; }
+  /* ★ 모바일 가로 스크롤 - 테이블 전체 너비 유지하고 좌우로 밀어서 보기 */
+  body { overflow-x: auto !important; }
+  #content {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+  .rc-col-header, .rc-header {
+    min-width: 1400px !important;
+  }
+  .list {
+    min-width: 1400px !important;
+  }
+  .card {
+    min-width: 1400px !important;
+  }
+  /* 헤더/검색바도 화면에 꽉 차게 */
+  .header { width: 100% !important; }
+  .biz-bar, .month-tab-bar, .search-bar { 
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  /* 통계 페이지도 가로 스크롤 */
+  .stats-page {
+    padding: 10px !important;
+    overflow-x: auto !important;
+  }
 }
 .stat-biz-btn:hover { background: #f5f5f5; }
 .stat-biz-btn.active { background: #1976D2; color: #fff; border-color: #1976D2; font-weight: 600; }
