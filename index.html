@@ -5725,8 +5725,10 @@ async function loadStatsInto() {
 function renderDailyDetail() {
   const detailDiv = document.getElementById('detail-content');
   if (!detailDiv) return;
+  // ★ 일자별 상세 보기는 항상 한 달 전체를 표시
+  const origPeriod = statsPeriod;
+  statsPeriod = 'month';
   // 기존 renderDailyStats 결과를 detailDiv에 출력하도록 임시 처리
-  // dailyStatsContent 영역 빌리기
   const tempDiv = document.createElement('div');
   tempDiv.id = 'stats-content-temp';
   tempDiv.style.display = 'none';
@@ -5750,6 +5752,35 @@ function renderDailyDetail() {
   // 정리
   origContent.id = 'stats-content';
   tempContent.remove();
+  // statsPeriod 복원
+  statsPeriod = origPeriod;
+  // ★ 차트는 innerHTML 복사 후 다시 그려야 함
+  setTimeout(() => {
+    // 차트 컨테이너 안의 canvas를 찾아서 다시 그리기
+    const canvas = detailDiv.querySelector('#chart-daily-revenue');
+    if (canvas) {
+      // 일자별 데이터 다시 합산해서 차트 그리기
+      const showAll = (statsCurrentBiz === 'all');
+      const targetBizs = showAll ? STATS_BIZ_LIST.map(b => b.id) : [statsCurrentBiz];
+      const dayMap = {};
+      let year2 = '', month2 = '';
+      for (const id of Object.keys(dailyStatsData)) {
+        if (dailyStatsData[id].year) { year2 = dailyStatsData[id].year; month2 = dailyStatsData[id].month; break; }
+      }
+      targetBizs.forEach(bizId => {
+        const dd = dailyStatsData[bizId];
+        if (!dd || !dd.dailyData) return;
+        dd.dailyData.forEach(row => {
+          if (!dayMap[row.day]) dayMap[row.day] = { day: row.day, orders:0, revenue:0, profit:0 };
+          dayMap[row.day].orders += row.orders;
+          dayMap[row.day].revenue += row.revenue;
+          dayMap[row.day].profit += row.profit;
+        });
+      });
+      const days = Object.values(dayMap).sort((a,b) => a.day - b.day);
+      try { drawDailyChart(days, year2, month2); } catch(e) { console.error('차트 재그리기 오류:', e); }
+    }
+  }, 50);
 }
 
 function renderMonthlyDetail() {
