@@ -4136,9 +4136,9 @@ function cardHtml(c, idx, totalCount) {
              return fastroInfo ? `onclick="event.stopPropagation();showFastroModal('${c.orderNo}')" style="cursor:pointer;justify-content:center;flex-direction:column;gap:2px;padding:2px 4px;"` : '';
            })()}>
         ${(() => {
-          // ★ 패스트로 출고완료 상태면 현지배송(tao) 배지 숨김
+          // ★ 패스트로 정보 있으면 현지배송(tao) 배지 숨김
           const fInfo = parseFastroNote(c.recipientNote);
-          if (fInfo && fInfo.state === '출고완료' && tabVal === 'tao') return '';
+          if (fInfo && tabVal === 'tao') return '';
           return `<span class="status-badge ${statusClass}">${statusLabel}</span>`;
         })()}
         ${(() => {
