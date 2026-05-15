@@ -9,7 +9,7 @@
 <!-- GAS Web App에서 호스팅 시 자기 URL 자동 주입 -->
 <script>
   try {
-    const _gasUrl = '<?= gasUrl ?>';
+    const _gasUrl = 'https://script.google.com/macros/s/AKfycbwKY_OlgEOkmTQhJWPciq9mlp13bTT49uIw6KKI3yCfXaQE3mClJo2EzSnxHOA0P50y0w/exec';
     if (_gasUrl && _gasUrl.indexOf('script.google.com') >= 0) {
       window.GAS_BASE_AUTO = _gasUrl;
     }
