@@ -343,6 +343,7 @@ canvas { max-width: 100%; }
 .status-badge.baeji  { background:#FF6F00; color:#FFFFFF; border:1.5px solid #E65100; font-weight:800; } /* 신청서작성: 진한 주황 */
 .status-badge.tao    { background:#7B1FA2; color:#FFFFFF; border:1.5px solid #4A148C; font-weight:800; } /* 현지배송: 보라 */
 .status-badge.recv   { background:#00897B; color:#FFFFFF; border:1.5px solid #004D40; font-weight:800; } /* 배대지수령: 청록 */
+.status-badge.localship { background:#1976D2; color:#FFFFFF; border:1.5px solid #0D47A1; font-weight:800; } /* 국내배송시작: 파랑 */
 .status-badge.s1     { background:#43A047; color:#FFFFFF; border:1.5px solid #1B5E20; font-weight:800; } /* 배송: 진한 초록 */
 .status-badge.s2     { background:#37474F; color:#FFFFFF; border:1.5px solid #263238; font-weight:800; } /* 판매완료: 진한 회색 */
 .status-badge.cancel { background:#000000; color:#FF5252; border:1.5px solid #B71C1C; font-weight:800; text-decoration:line-through; } /* 주문취소: 검정+빨강선 */
@@ -2327,6 +2328,9 @@ function calcTab(c) {
   if (isGBlue(gBg2)) return 's2';
   if (smap[c.phone] && smap[c.phone].dv && smap[c.phone].dv !== '') return 's2';
 
+  // ★ 4순위 (제거됨): 패스트로 출고완료는 상태배지 따로 안 변경
+  // 상태컬럼에 운송장만 표시되고 메인 상태는 현지배송/배대지수령 등 그대로 유지
+
   const hYellow2 = hBg2 !== '' && hBg2 !== '#ffffff' && hBg2 !== 'white' &&
                    (hBg2.includes('ffff00') || hBg2.includes('ffd700') || hBg2.includes('ffff4d') || hBg2.includes('ffd7'));
   const lOrange2 = lBg2.includes('ff6d00')||lBg2.includes('ff6600')||lBg2.includes('e65100')||lBg2.includes('ff9900');
@@ -4081,7 +4085,7 @@ function cardHtml(c, idx, totalCount) {
 
   const _orig = monthData.find(d => d.orderNo === c.orderNo && d.phone === pid) || c;
   const tabVal = calcTab(_orig);
-  const statusLabel = {all:'주문전',unsent:'주문완료',req:'주문요청중',baeji:'신청서작성',tao:'현지배송',recv:'배대지수령',s1:'배송',s2:'판매완료',cancel:'주문취소'}[tabVal]||'주문전';
+  const statusLabel = {all:'주문전',unsent:'주문완료',req:'주문요청중',baeji:'신청서작성',tao:'현지배송',recv:'배대지수령',localship:'국내배송시작',s1:'배송',s2:'판매완료',cancel:'주문취소'}[tabVal]||'주문전';
   const statusClass = tabVal || 'all';
   const cancelledCard = isCancelled || tabVal === 'cancel';
 
@@ -4131,7 +4135,12 @@ function cardHtml(c, idx, totalCount) {
              const fastroInfo = parseFastroNote(c.recipientNote);
              return fastroInfo ? `onclick="event.stopPropagation();showFastroModal('${c.orderNo}')" style="cursor:pointer;justify-content:center;flex-direction:column;gap:2px;padding:2px 4px;"` : '';
            })()}>
-        <span class="status-badge ${statusClass}">${statusLabel}</span>
+        ${(() => {
+          // ★ 패스트로 출고완료 상태면 현지배송(tao) 배지 숨김
+          const fInfo = parseFastroNote(c.recipientNote);
+          if (fInfo && fInfo.state === '출고완료' && tabVal === 'tao') return '';
+          return `<span class="status-badge ${statusClass}">${statusLabel}</span>`;
+        })()}
         ${(() => {
           const fastroInfo = parseFastroNote(c.recipientNote);
           if (!fastroInfo) return '';
