@@ -2707,8 +2707,8 @@ function jsonp(url) {
     const timer = setTimeout(() => {
       delete window[cb];
       if (script.parentNode) script.parentNode.removeChild(script);
-      reject(new Error('시간 초과'));
-    }, 30000);
+      reject(new Error('시간 초과 (60초)'));
+    }, 60000);  // 30초 → 60초
     window[cb] = (data) => {
       clearTimeout(timer);
       delete window[cb];
