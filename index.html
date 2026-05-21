@@ -344,6 +344,7 @@ canvas { max-width: 100%; }
 .status-badge.tao    { background:#7B1FA2; color:#FFFFFF; border:1.5px solid #4A148C; font-weight:800; } /* 현지배송: 보라 */
 .status-badge.recv   { background:#00897B; color:#FFFFFF; border:1.5px solid #004D40; font-weight:800; } /* 배대지수령: 청록 */
 .status-badge.localship { background:#1976D2; color:#FFFFFF; border:1.5px solid #0D47A1; font-weight:800; } /* 국내배송시작: 파랑 */
+.status-badge.prep   { background:#A5D6A7; color:#1B5E20; border:1.5px solid #66BB6A; font-weight:800; } /* 배송준비: 연한 초록 */
 .status-badge.s1     { background:#43A047; color:#FFFFFF; border:1.5px solid #1B5E20; font-weight:800; } /* 배송: 진한 초록 */
 .status-badge.s2     { background:#37474F; color:#FFFFFF; border:1.5px solid #263238; font-weight:800; } /* 판매완료: 진한 회색 */
 .status-badge.cancel { background:#000000; color:#FF5252; border:1.5px solid #B71C1C; font-weight:800; text-decoration:line-through; } /* 주문취소: 검정+빨강선 */
@@ -2317,16 +2318,18 @@ function calcTab(c) {
   const hBg2  = (c.hBg||'').toLowerCase();
   const iBg2  = (c.iBg||'').toLowerCase();
   const lBg2  = (c.lBg||'').toLowerCase();
+  // ★ smap 키는 orderNo (동일 고객 여러 주문 구분)
+  const sKey = c.orderNo;
 
   // ★ 1순위: 구글 시트 빨간색 = 취소 (smap보다 우선)
   if (isRed(gBg2) || isRed(hBg2) || isRed(iBg2)) return 'cancel';
 
   // ★ 2순위: 로컬 취소 상태
-  if (smap[c.phone] && smap[c.phone].cancelled) return 'cancel';
+  if (smap[sKey] && smap[sKey].cancelled) return 'cancel';
 
   // ★ 3순위: G열 파란색 = 최종발송 = 판매완료 (모든 다른 상태보다 우선)
   if (isGBlue(gBg2)) return 's2';
-  if (smap[c.phone] && smap[c.phone].dv && smap[c.phone].dv !== '') return 's2';
+  if (smap[sKey] && smap[sKey].dv && smap[sKey].dv !== '') return 's2';
 
   // ★ 4순위 (제거됨): 패스트로 출고완료는 상태배지 따로 안 변경
   // 상태컬럼에 운송장만 표시되고 메인 상태는 현지배송/배대지수령 등 그대로 유지
@@ -2343,12 +2346,17 @@ function calcTab(c) {
 
   // ★★★ 사용자 액션(smap) 처리 ★★★
   // 배대지 신청서 작성
-  if (smap[c.phone] && smap[c.phone].b) return 'baeji';
+  if (smap[sKey] && smap[sKey].b) return 'baeji';
   // 주문완료 (셀 색상보다 우선 - 사용자 의도 보존)
-  if (smap[c.phone] && smap[c.phone].oo) return 'unsent';
+  if (smap[sKey] && smap[sKey].oo) return 'unsent';
 
   // ── 셀 색상 기반 자동 판정 ──
-  if (hYellow2) return 's1';           // H열 노란색 → 배송
+  if (hYellow2) {
+    // ★ H열 노란색 (배대지 신청완료) + 패스트로 정보 있으면 → 배송준비
+    //   패스트로 정보 없으면 → 배송 (기존 동작)
+    if (c.recipientNote && parseFastroNote(c.recipientNote)) return 'prep';
+    return 's1';
+  }
   if (isYellow(iBg2)) return 'unsent'; // I열 노란색 → 주문완료
   if (lOrange2) return 'req';          // L열 주황색 → 주문요청중
   return 'all';                        // 주문전
@@ -2932,7 +2940,7 @@ async function saveCustomsEdit(pid, orderNo, sheetName) {
 async function checkCustomsInline(pid, encName) {
   const inp = document.getElementById('cust-input-' + pid);
   // 입력창 현재값 > monthData 순으로 사용
-  const c2 = monthData.find(c => c.phone === pid);
+  const c2 = monthData.find(c => c.orderNo === pid);
   const customs = (inp && inp.value.trim().toUpperCase()) || (c2 && c2.customs) || '';
   if (!customs) {
     const resDiv = document.getElementById('cres-' + pid);
@@ -2947,7 +2955,7 @@ async function checkCustomsInline(pid, encName) {
 async function checkCustoms(pid, encName, encCust) {
   const name    = decodeURIComponent(encName);
   // 최신 통관번호: monthData > 인풋 > 파라미터 순으로 우선
-  const c2live  = monthData.find(c => c.phone === pid);
+  const c2live  = monthData.find(c => c.orderNo === pid);
   const custLive = (c2live && c2live.customs) || '';
   const customs = (custLive || decodeURIComponent(encCust || '')).trim().toUpperCase();
   const btn     = document.getElementById('custbtn2-'+pid);
@@ -2967,8 +2975,8 @@ async function checkCustoms(pid, encName, encCust) {
 
   try {
     // customers와 monthData 모두에서 주문번호 찾기
-    const c2 = customers.find(c => c.phone === pid)
-            || monthData.find(c => c.phone === pid);
+    const c2 = customers.find(c => c.orderNo === pid)
+            || monthData.find(c => c.orderNo === pid);
     const params = new URLSearchParams({
       action:  'verifyContact',
       unipass: customs,
@@ -4074,18 +4082,20 @@ function render() {
 
 function cardHtml(c, idx, totalCount) {
   if (!c.phone) c.phone = c.orderNo.replace(/\D/g,'').slice(-11);
-  const pid = c.phone;
+  // ★ pid를 orderNo 기준으로 변경 - 동일 고객 여러 주문 구분 위해
+  const pid = c.orderNo;
+  const phoneOnly = c.phone;  // 전화번호 원본 (sms 등에 사용)
   const s   = status(pid);
   const sc  = ['s0','s1','s2'][s];
   const isCancelled = smap[pid] && smap[pid].cancelled;
-  const ph  = pid.replace(/(\d{3})(\d{4})(\d{4})/,'$1-$2-$3');
+  const ph  = phoneOnly.replace(/(\d{3})(\d{4})(\d{4})/,'$1-$2-$3');
   const uid = 'c' + (idx !== undefined ? idx : Math.random().toString(36).slice(2));
   // 내림차순 번호: 전체 개수 - 현재 인덱스
   const rowNo = (totalCount !== undefined && idx !== undefined) ? (totalCount - idx) : '';
 
-  const _orig = monthData.find(d => d.orderNo === c.orderNo && d.phone === pid) || c;
+  const _orig = monthData.find(d => d.orderNo === c.orderNo) || c;
   const tabVal = calcTab(_orig);
-  const statusLabel = {all:'주문전',unsent:'주문완료',req:'주문요청중',baeji:'신청서작성',tao:'현지배송',recv:'배대지수령',localship:'국내배송시작',s1:'배송',s2:'판매완료',cancel:'주문취소'}[tabVal]||'주문전';
+  const statusLabel = {all:'주문전',unsent:'주문완료',req:'주문요청중',baeji:'신청서작성',tao:'현지배송',recv:'배대지수령',prep:'배송준비',s1:'배송',s2:'판매완료',cancel:'주문취소'}[tabVal]||'주문전';
   const statusClass = tabVal || 'all';
   const cancelledCard = isCancelled || tabVal === 'cancel';
 
@@ -4478,7 +4488,7 @@ function openOrder(pid) {
   closeAll(pid);
   if (!isOpen) {
     // monthData에서 직접 찾기 (phone으로 매칭)
-    const mc = monthData.find(c => c.phone === pid);
+    const mc = monthData.find(c => c.orderNo === pid);
     const ta = document.getElementById('msg1-'+pid);
     if (ta && mc && mc.message) {
       ta.value = mc.message;
@@ -4529,11 +4539,21 @@ function pickSc(pid, gi, idx) {
   document.getElementById('p2-'+pid).classList.add('open');
 }
 
+// ★ orderNo로 전화번호 찾기 (sms 발송용)
+function getPhoneFromOrderNo(orderNo) {
+  const mc = monthData.find(c => c.orderNo === orderNo);
+  if (mc && mc.phone) return mc.phone;
+  const sc = searchData ? searchData.find(c => c.orderNo === orderNo) : null;
+  if (sc && sc.phone) return sc.phone;
+  return orderNo;  // 못 찾으면 그대로
+}
+
 function send1edit(pid) {
   const ta = document.getElementById('msg1-'+pid);
   const msg = ta ? ta.value : '';
   if (!msg) return;
-  window.location.href = 'sms:' + pid + '?body=' + encodeURIComponent(msg);
+  const phone = getPhoneFromOrderNo(pid);
+  window.location.href = 'sms:' + phone + '?body=' + encodeURIComponent(msg);
   setTimeout(() => {
     ini(pid); smap[pid].o = true; save();
     const bb1 = document.getElementById('bb1-'+pid);
@@ -4543,8 +4563,8 @@ function send1edit(pid) {
     GROUPS.forEach((_,gi) => { const b=document.getElementById('gb-'+pid+'-'+gi); if(b) b.classList.remove('off'); });
     updCard(pid); updStats();
     // 월별 시트 해당 주문번호 행 노란색 색칠
-    const c = customers.find(c => c.phone === pid)
-           || monthData.find(c => c.phone === pid);
+    const c = customers.find(c => c.orderNo === pid)
+           || monthData.find(c => c.orderNo === pid);
     if (c && c.orderNo) highlightRow(c.orderNo);
   }, 800);
 }
@@ -5058,8 +5078,9 @@ function send1Direct(pid) {
   const ta = document.getElementById('msg1-'+pid);
   const msg = ta ? ta.value : '';
   if (!msg) return;
+  const phone = getPhoneFromOrderNo(pid);
   const encoded = encodeURIComponent(msg);
-  window.location.href = 'sms:' + pid + '?body=' + encoded;
+  window.location.href = 'sms:' + phone + '?body=' + encoded;
   setTimeout(() => {
     ini(pid); smap[pid].o = true; save();
     const bb1 = document.getElementById('bb1-'+pid);
@@ -5070,7 +5091,7 @@ function send1Direct(pid) {
     const p1 = document.getElementById('p1-'+pid);
     if (p1) p1.classList.remove('open');
     // E열 진한노란 배경 설정
-    const mIdx = monthData.findIndex(c => c.phone === pid);
+    const mIdx = monthData.findIndex(c => c.orderNo === pid);
     if (mIdx >= 0) {
       monthData[mIdx].sent = true;
       const uid2 = 'c' + mIdx;
@@ -5087,7 +5108,8 @@ function send1Direct(pid) {
 }
 
 function send1(pid, encMsg) {
-  window.location.href = 'sms:' + pid + '?body=' + decodeURIComponent(encMsg);
+  const phone = getPhoneFromOrderNo(pid);
+  window.location.href = 'sms:' + phone + '?body=' + decodeURIComponent(encMsg);
   setTimeout(() => {
     ini(pid); smap[pid].o = true; save();
     const bb1 = document.getElementById('bb1-'+pid);
@@ -5106,7 +5128,8 @@ function send2(pid) {
   const ta = document.getElementById('p2b-'+pid);
   const msg = ta ? ta.value : decodeURIComponent(sb2.dataset.msg||'');
   if (!msg) return;
-  window.location.href = 'sms:' + pid + '?body=' + encodeURIComponent(msg);
+  const phone = getPhoneFromOrderNo(pid);
+  window.location.href = 'sms:' + phone + '?body=' + encodeURIComponent(msg);
   setTimeout(() => {
     ini(pid); smap[pid].g[gi]=true; save();
     const gb = document.getElementById('gb-'+pid+'-'+gi);
