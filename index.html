@@ -1249,11 +1249,47 @@ body {
     <div style="flex:1"></div>
     <button class="add-btn" onclick="openPasteModal()">➕ 신규주문등록</button>
     <button class="view-btn active" id="view-main" onclick="switchView('main')">📋 주문관리</button>
-    <button class="view-btn" id="view-fastro-calc" onclick="toggleFastroCalc()" style="border-color:#7b1fa2;color:#7b1fa2;font-weight:700;">📦 운송비</button>
+    <button class="view-btn" id="view-fastro-calc" onclick="openFastroCalcModal()" style="border-color:#7b1fa2;color:#7b1fa2;font-weight:700;">📦 운송비</button>
     <button class="view-btn" id="view-stats" onclick="switchView('stats')">📊 통계</button>
     <button class="view-btn" id="view-cookie" onclick="openCookieModal()" style="border-color:#ff9800;color:#ff9800;font-weight:700;">🔑 쿠키 갱신</button>
   </div>
   <div class="month-tab-bar" id="month-tab-bar"></div>
+
+  <!-- ★ 패스트로 운송비 펼침 패널 (탭 아래) ★ -->
+  <div id="fastro-panel" style="display:none;background:linear-gradient(180deg,#f9f6fc 0%,#fff 100%);border-bottom:2px solid #7b1fa2;">
+    <div style="padding:10px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+      <span style="font-size:14px;font-weight:700;color:#7b1fa2;">📦 패스트로 운송비</span>
+
+      <div style="display:flex;gap:6px;align-items:center;">
+        <label style="font-size:13px;color:#666;">⚖</label>
+        <input type="number" id="fastro-weight" placeholder="무게" step="0.1" min="0.01"
+          style="width:90px;border:1.5px solid #e1bee7;border-radius:6px;padding:6px 8px;font-size:14px;outline:none;font-family:monospace;"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();openFastroResult(window._lastTrNo||29);}">
+        <span style="font-size:12px;color:#999;">kg</span>
+      </div>
+
+      <div style="display:flex;gap:5px;">
+        <button onclick="openFastroResult(29)" id="fr-btn-29" class="fr-btn" style="padding:6px 12px;background:#fff;border:1.5px solid #7b1fa2;border-radius:6px;font-size:12px;font-weight:700;color:#7b1fa2;cursor:pointer;">🚢 해운</button>
+        <button onclick="openFastroResult(28)" id="fr-btn-28" class="fr-btn" style="padding:6px 12px;background:#fff;border:1.5px solid #7b1fa2;border-radius:6px;font-size:12px;font-weight:700;color:#7b1fa2;cursor:pointer;">✈️ CJ</button>
+        <button onclick="openFastroResult(35)" id="fr-btn-35" class="fr-btn" style="padding:6px 12px;background:#fff;border:1.5px solid #7b1fa2;border-radius:6px;font-size:12px;font-weight:700;color:#7b1fa2;cursor:pointer;">✈️ 한진</button>
+        <button onclick="openFastroResult(32)" id="fr-btn-32" class="fr-btn" style="padding:6px 12px;background:#fff;border:1.5px solid #7b1fa2;border-radius:6px;font-size:12px;font-weight:700;color:#7b1fa2;cursor:pointer;">📦 LCL</button>
+      </div>
+
+      <div style="flex:1"></div>
+      <button onclick="closeFastroCalcModal()" style="padding:6px 12px;background:#fff;color:#888;border:1.5px solid #ccc;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">✕ 닫기</button>
+    </div>
+
+    <!-- iframe 컨테이너 (요율표) -->
+    <div id="fastro-iframe-container" style="position:relative;height:280px;overflow:hidden;background:#fafafa;border-top:1px solid #e1bee7;">
+      <div id="fastro-empty" style="display:flex;align-items:center;justify-content:center;height:100%;color:#999;font-size:13px;text-align:center;">
+        ⬆ 무게 입력 후 운송방식을 선택하세요
+      </div>
+      <div id="fastro-iframe-wrapper" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;">
+        <iframe id="fastro-iframe" style="position:absolute;top:-1280px;left:0;width:100%;height:2000px;border:0;" scrolling="no"></iframe>
+      </div>
+    </div>
+  </div>
+
   <div class="search-bar">
     <div class="search-wrap">
       <span style="font-size:14px;color:#9e9e9e;">🔍</span>
@@ -1543,37 +1579,6 @@ body {
     <div id="info-progress" style="text-align:center;font-size:13px;font-weight:700;color:#993d00;margin-top:8px;"></div>
     <button onclick="saveInfoEdit()" style="margin-top:12px;width:100%;padding:13px;background:#7b1fa2;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;">💾 저장</button>
     <button onclick="closeInfoModal()" style="margin-top:8px;width:100%;padding:11px;background:#f0f0f0;color:#888;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;">취소</button>
-  </div>
-</div>
-
-<!-- ═══ 패스트로 운송비 계산기 (우측 하단 팝업) ═══ -->
-<div id="fastro-calc-popup" style="display:none;position:fixed;right:20px;bottom:20px;width:520px;max-width:calc(100vw - 40px);background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.25);z-index:9998;overflow:hidden;border:2px solid #7b1fa2;">
-  <div style="background:linear-gradient(135deg,#7b1fa2,#9c27b0);color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;cursor:move;" id="fastro-calc-header">
-    <div style="font-weight:800;font-size:14px;display:flex;align-items:center;gap:8px;">
-      <span>📦 패스트로 운송비</span>
-      <div style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.2);border-radius:6px;padding:2px 6px;">
-        <input id="fastro-weight" type="number" step="0.1" min="0" placeholder="무게" style="width:70px;border:none;background:transparent;color:#fff;font-size:13px;font-weight:700;outline:none;text-align:center;" oninput="onFastroWeightInput()" onkeydown="if(event.key==='Enter'){const m=document.querySelector('#fastro-method-row .fcm-btn.active'); if(m)m.click();}">
-        <span style="font-size:11px;opacity:0.9;">kg</span>
-      </div>
-    </div>
-    <div style="display:flex;gap:6px;">
-      <button onclick="closeFastroCalc()" style="background:rgba(255,255,255,0.2);color:#fff;border:none;border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:14px;">✕</button>
-    </div>
-  </div>
-  <div id="fastro-method-row" style="display:flex;gap:4px;padding:8px;background:#f8f5fc;border-bottom:1px solid #e1bee7;">
-    <button class="fcm-btn" data-tr="29" onclick="selectFastroMethod(this,29)" style="flex:1;padding:8px 4px;border:1.5px solid #7b1fa2;border-radius:8px;background:#fff;color:#4a148c;font-size:12px;font-weight:700;cursor:pointer;">🚢 해운</button>
-    <button class="fcm-btn" data-tr="28" onclick="selectFastroMethod(this,28)" style="flex:1;padding:8px 4px;border:1.5px solid #7b1fa2;border-radius:8px;background:#fff;color:#4a148c;font-size:12px;font-weight:700;cursor:pointer;">✈️ CJ</button>
-    <button class="fcm-btn" data-tr="35" onclick="selectFastroMethod(this,35)" style="flex:1;padding:8px 4px;border:1.5px solid #7b1fa2;border-radius:8px;background:#fff;color:#4a148c;font-size:12px;font-weight:700;cursor:pointer;">✈️ 한진</button>
-    <button class="fcm-btn" data-tr="32" onclick="selectFastroMethod(this,32)" style="flex:1;padding:8px 4px;border:1.5px solid #7b1fa2;border-radius:8px;background:#fff;color:#4a148c;font-size:12px;font-weight:700;cursor:pointer;">📦 LCL</button>
-  </div>
-  <div style="position:relative;height:280px;overflow:hidden;background:#fafafa;">
-    <div id="fastro-iframe-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9e9e9e;font-size:13px;text-align:center;padding:20px;">
-      ⬆️ 무게 입력 후 운송방식을 선택하세요
-    </div>
-    <iframe id="fastro-iframe" src="" style="display:none;position:absolute;left:0;width:100%;border:none;" scrolling="no"></iframe>
-  </div>
-  <div style="padding:6px 12px;background:#f8f5fc;font-size:10px;color:#7b1fa2;text-align:center;border-top:1px solid #e1bee7;">
-    💡 부피무게는 (가로×세로×높이÷6000) 결과를 무게에 입력
   </div>
 </div>
 
@@ -3173,95 +3178,70 @@ function openPasteModal() {
   fillPasteSheetSelect();
 }
   
-// ═══ 패스트로 운송비 계산기 ═══
-let _fastroCurrentTr = null;
-
-function toggleFastroCalc() {
-  const popup = document.getElementById('fastro-calc-popup');
-  if (!popup) return;
-  if (popup.style.display === 'none' || !popup.style.display) {
-    popup.style.display = 'block';
-    setTimeout(() => {
-      const w = document.getElementById('fastro-weight');
-      if (w) w.focus();
-    }, 100);
-  } else {
-    closeFastroCalc();
-  }
-}
-
-function closeFastroCalc() {
-  const popup = document.getElementById('fastro-calc-popup');
-  if (popup) popup.style.display = 'none';
-}
-
-function onFastroWeightInput() {
-  const w = document.getElementById('fastro-weight');
-  const val = parseFloat(w.value);
-  if (!val || val <= 0) return;
-  if (_fastroCurrentTr) {
-    loadFastroIframe(_fastroCurrentTr, val);
-  }
-}
-
-function selectFastroMethod(btn, trNo) {
-  const w = document.getElementById('fastro-weight');
-  const val = parseFloat(w.value);
-  if (!val || val <= 0) {
-    showToast('⚠ 무게를 먼저 입력하세요');
-    w.focus();
+// ★★★ 패스트로 운송비 계산기 (탭 아래 펼침 패널) ★★★
+function openFastroCalcModal() {
+  const panel = document.getElementById('fastro-panel');
+  const isOpen = panel.style.display === 'block';
+  if (isOpen) {
+    // 이미 열려있으면 닫기 (토글)
+    closeFastroCalcModal();
     return;
   }
-  document.querySelectorAll('#fastro-method-row .fcm-btn').forEach(b => {
-    b.classList.remove('active');
-    b.style.background = '#fff';
-    b.style.color = '#4a148c';
-  });
-  btn.classList.add('active');
-  btn.style.background = '#7b1fa2';
-  btn.style.color = '#fff';
-  _fastroCurrentTr = trNo;
-  loadFastroIframe(trNo, val);
+  panel.style.display = 'block';
+  setTimeout(() => {
+    const inp = document.getElementById('fastro-weight');
+    if (inp) inp.focus();
+  }, 100);
 }
 
-function loadFastroIframe(trNo, weight) {
+function closeFastroCalcModal() {
+  document.getElementById('fastro-panel').style.display = 'none';
+  // iframe 초기화
   const iframe = document.getElementById('fastro-iframe');
-  const placeholder = document.getElementById('fastro-iframe-placeholder');
-  if (!iframe) return;
-  const url = 'https://www.fast-ro.com/guide/guide_08.php?tr_no=' + trNo + '&value=' + weight;
-  iframe.style.display = 'block';
-  iframe.style.height = '1400px';
-  iframe.style.top = '-1120px';
-  if (placeholder) placeholder.style.display = 'none';
+  const wrapper = document.getElementById('fastro-iframe-wrapper');
+  if (iframe) iframe.src = 'about:blank';
+  if (wrapper) wrapper.style.display = 'none';
+  const empty = document.getElementById('fastro-empty');
+  if (empty) empty.style.display = 'flex';
+  // 버튼 활성화 해제
+  document.querySelectorAll('.fr-btn').forEach(b => {
+    b.style.background = '#fff';
+    b.style.color = '#7b1fa2';
+  });
+}
+
+function openFastroResult(trNo) {
+  const weight = document.getElementById('fastro-weight').value.trim();
+  if (!weight || parseFloat(weight) <= 0) {
+    alert('무게(kg)를 먼저 입력해주세요!');
+    document.getElementById('fastro-weight').focus();
+    return;
+  }
+
+  // 엔터키 처리용
+  window._lastTrNo = trNo;
+
+  // 버튼 활성화 표시
+  document.querySelectorAll('.fr-btn').forEach(b => {
+    b.style.background = '#fff';
+    b.style.color = '#7b1fa2';
+  });
+  const activeBtn = document.getElementById('fr-btn-' + trNo);
+  if (activeBtn) {
+    activeBtn.style.background = '#7b1fa2';
+    activeBtn.style.color = '#fff';
+  }
+
+  // iframe에 패스트로 페이지 로드
+  const url = 'https://fast-ro.com/guide/guide_08.php?tr_no=' + trNo + '&mb_id=&value=' + parseFloat(weight);
+  const iframe = document.getElementById('fastro-iframe');
+  const wrapper = document.getElementById('fastro-iframe-wrapper');
+  const empty = document.getElementById('fastro-empty');
+
+  empty.style.display = 'none';
+  wrapper.style.display = 'block';
   iframe.src = url;
 }
-
-// 드래그로 팝업 이동
-(function() {
-  let isDrag = false, sx = 0, sy = 0, sr = 0, sb = 0;
-  document.addEventListener('mousedown', function(e) {
-    const hdr = e.target.closest('#fastro-calc-header');
-    if (!hdr) return;
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-    const popup = document.getElementById('fastro-calc-popup');
-    if (!popup) return;
-    isDrag = true;
-    sx = e.clientX; sy = e.clientY;
-    const rect = popup.getBoundingClientRect();
-    sr = window.innerWidth - rect.right;
-    sb = window.innerHeight - rect.bottom;
-    e.preventDefault();
-  });
-  document.addEventListener('mousemove', function(e) {
-    if (!isDrag) return;
-    const popup = document.getElementById('fastro-calc-popup');
-    if (!popup) return;
-    const dx = sx - e.clientX, dy = sy - e.clientY;
-    popup.style.right = Math.max(0, sr + dx) + 'px';
-    popup.style.bottom = Math.max(0, sb + dy) + 'px';
-  });
-  document.addEventListener('mouseup', function() { isDrag = false; });
-})();
 
 function openCookieModal() {
   document.getElementById('cookie-modal-bg').classList.add('open');
