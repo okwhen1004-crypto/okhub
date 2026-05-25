@@ -5307,7 +5307,16 @@ function previewContact(pid, encName, encProd, encOpt, encSrc, orderNo, encCust,
   const prod = decodeURIComponent(encProd);
   const opt  = decodeURIComponent(encOpt);
   const src  = decodeURIComponent(encSrc);
-  const ph   = pid.replace(/(\d{3})(\d{4})(\d{4})/,'$1-$2-$3');
+  // ★ pid는 주문번호이므로, 실제 전화번호를 monthData/searchData에서 찾아옴
+  // 휴대폰2(phone2)를 우선, 없으면 phone1, 없으면 phone
+  const dataRow = (typeof monthData !== 'undefined' && Array.isArray(monthData) ? monthData.find(c => c.orderNo === orderNo) : null)
+               || (typeof searchData !== 'undefined' && Array.isArray(searchData) ? searchData.find(c => c.orderNo === orderNo) : null)
+               || {};
+  let phoneRaw = (dataRow.phone2 || dataRow.phone1 || dataRow.phone || '').replace(/\D/g, '');
+  if (phoneRaw && !phoneRaw.startsWith('0') && phoneRaw.length === 10) phoneRaw = '0' + phoneRaw;
+  const ph = phoneRaw.length === 11
+    ? phoneRaw.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')
+    : phoneRaw;
 
   // ★ 친구 시스템: 성은 현재 보고 있는 사업자 번호 (1~9)
   // 웰=1, 후=2, 웬=3, 웨어=4, 와이=5, 하우=6, 휴먼=7, 터치=8, 에이비=9
