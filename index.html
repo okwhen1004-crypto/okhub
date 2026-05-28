@@ -6565,12 +6565,12 @@ function renderDailyStats() {
             <th></th>
             <th>날짜</th>
             <th>요일</th>
-            <th>주문</th>
-            <th>매출</th>
-            <th>정산금</th>
-            <th>이익</th>
-            <th>마진율</th>
-            <th>취소</th>
+            <th class="num">주문</th>
+            <th class="num">매출</th>
+            <th class="num">정산금</th>
+            <th class="num">이익</th>
+            <th class="num">마진율</th>
+            <th class="num">취소</th>
           </tr>
         </thead>
         <tbody>
@@ -6595,12 +6595,12 @@ function renderDailyStats() {
         <td style="text-align:center;color:#ffab73;font-weight:700;width:24px;">${hasOrders ? '<span id="day-arrow-'+d.day+'">▶</span>' : ''}</td>
         <td>${month}/${d.day}</td>
         <td${weekendStyle}>${dow}</td>
-        <td>${d.orders > 0 ? d.orders.toLocaleString() + '건' : '-'}</td>
-        <td>${d.revenue > 0 ? Math.round(d.revenue).toLocaleString() : '-'}</td>
-        <td>${d.settlement > 0 ? Math.round(d.settlement).toLocaleString() : '-'}</td>
-        <td style="color:${d.profit>=0?'#2e7d32':'#c62828'};">${d.profit !== 0 ? Math.round(d.profit).toLocaleString() : '-'}</td>
-        <td>${d.revenue > 0 ? margin.toFixed(1)+'%' : '-'}</td>
-        <td style="color:#c62828;">${d.cancelled > 0 ? d.cancelled : '-'}</td>
+        <td class="num">${d.orders > 0 ? d.orders.toLocaleString() + '건' : '-'}</td>
+        <td class="num">${d.revenue > 0 ? Math.round(d.revenue).toLocaleString() : '-'}</td>
+        <td class="num">${d.settlement > 0 ? Math.round(d.settlement).toLocaleString() : '-'}</td>
+        <td class="num" style="color:${d.profit>=0?'#2e7d32':'#c62828'};">${d.profit !== 0 ? Math.round(d.profit).toLocaleString() : '-'}</td>
+        <td class="num">${d.revenue > 0 ? margin.toFixed(1)+'%' : '-'}</td>
+        <td class="num" style="color:#c62828;">${d.cancelled > 0 ? d.cancelled : '-'}</td>
       </tr>
       <tr id="day-orders-${d.day}" class="day-orders-row" style="display:none;">
         <td colspan="9" style="padding:0;background:#fff5e6;"></td>
@@ -6714,12 +6714,12 @@ function renderDailyStats() {
           <thead>
             <tr>
               <th>사업자</th>
-              <th>주문</th>
-              <th>매출</th>
-              <th>정산금</th>
-              <th>이익</th>
-              <th>마진율</th>
-              <th>취소</th>
+              <th class="num">주문</th>
+              <th class="num">매출</th>
+              <th class="num">정산금</th>
+              <th class="num">이익</th>
+              <th class="num">마진율</th>
+              <th class="num">취소</th>
             </tr>
           </thead>
           <tbody>
@@ -6732,12 +6732,12 @@ function renderDailyStats() {
       html += `
         <tr>
           <td>${biz.name}</td>
-          <td>${(s.totalOrders||0).toLocaleString()}건</td>
-          <td>${Math.round(s.totalRevenue||0).toLocaleString()}</td>
-          <td>${Math.round(s.totalSettlement||0).toLocaleString()}</td>
-          <td style="color:${(s.totalProfit||0)>=0?'#2e7d32':'#c62828'};">${Math.round(s.totalProfit||0).toLocaleString()}</td>
-          <td>${margin.toFixed(1)}%</td>
-          <td style="color:#c62828;">${s.cancelled||0}</td>
+          <td class="num">${(s.totalOrders||0).toLocaleString()}건</td>
+          <td class="num">${Math.round(s.totalRevenue||0).toLocaleString()}</td>
+          <td class="num">${Math.round(s.totalSettlement||0).toLocaleString()}</td>
+          <td class="num" style="color:${(s.totalProfit||0)>=0?'#2e7d32':'#c62828'};">${Math.round(s.totalProfit||0).toLocaleString()}</td>
+          <td class="num">${margin.toFixed(1)}%</td>
+          <td class="num" style="color:#c62828;">${s.cancelled||0}</td>
         </tr>
       `;
     });
