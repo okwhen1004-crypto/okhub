@@ -4135,6 +4135,8 @@ async function loadAll() {
     scripts        = r.scripts    || [];
     monthData      = r.monthList  || [];
     monthSheetName = r.sheetName  || '금월';
+    console.log('[loadAll] scripts 로드:', scripts.length, '개');
+    if (scripts.length > 0) console.log('[loadAll] 타이틀 목록:', scripts.map(s=>s.title));
     // ★ 모든 monthData에 템플릿 메시지 생성 (문자발송 시트 불필요)
     monthData.forEach(m => { if (!m.message) m.message = makeDefaultMessage(m); });
 
@@ -4231,12 +4233,14 @@ function cardHtml(c, idx, totalCount) {
     `<button class="gbtn ${gSent(pid,gi)?'sent':''}" id="gb-${pid}-${gi}" onclick="event.stopPropagation();openGrp('${pid}',${gi})">${g.icon}<span>${g.label}</span></button>`
   ).join('');
   const gboxes = GROUPS.map((g,gi) => {
+    const matched = g.titles.filter(t => scripts.find(s2=>s2.title===t)).length;
+    const total = g.titles.length;
     const chips = g.titles.map(t => {
       const sc2 = scripts.find(s2=>s2.title===t);
-      if (!sc2) return '';
+      if (!sc2) return `<div class="chip" style="background:#fff3e0;border-color:#ffb74d;color:#bf360c;cursor:default;"><div class="chip-title">⚠ ${t}</div><div class="chip-preview">문자발송 시트에 등록되지 않음</div></div>`;
       return `<div class="chip" onclick="pickSc('${pid}',${gi},${sc2.idx})"><div class="chip-title">${sc2.title}</div><div class="chip-preview">${sc2.content}</div></div>`;
-    }).filter(Boolean).join('');
-    return `<div class="group-box" id="gbox-${pid}-${gi}"><div class="group-hd">${g.icon} ${g.label}</div><div class="group-items">${chips}</div></div>`;
+    }).join('');
+    return `<div class="group-box" id="gbox-${pid}-${gi}"><div class="group-hd">${g.icon} ${g.label} <span style="font-size:10px;color:${matched===total?'#2e7d32':'#c62828'};margin-left:6px;">(${matched}/${total})</span></div><div class="group-items">${chips}</div></div>`;
   }).join('');
 
   return `
