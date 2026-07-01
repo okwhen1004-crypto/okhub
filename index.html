@@ -1688,6 +1688,15 @@ const GROUPS = [
   { icon: '⏳', label: '기타',       titles: ['타제품제공', '계좌번호'] },
 ];
 
+// ★ 문자발송 시트 제목과 GROUPS.titles 비교 시, 눈에 안 보이는 특수문자·유니코드
+//    정규화 차이(NFC/NFD)로 매칭이 실패하는 것을 방지하기 위한 정규화 헬퍼
+function normTitle(s) {
+  return String(s == null ? '' : s)
+    .normalize('NFC')
+    .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '')
+    .trim();
+}
+
 let customers = [], scripts = [], activeFilter = 'all';
 let searchQuery = '';
 let currentBiz = '1';
@@ -4233,10 +4242,10 @@ function cardHtml(c, idx, totalCount) {
     `<button class="gbtn ${gSent(pid,gi)?'sent':''}" id="gb-${pid}-${gi}" onclick="event.stopPropagation();openGrp('${pid}',${gi})">${g.icon}<span>${g.label}</span></button>`
   ).join('');
   const gboxes = GROUPS.map((g,gi) => {
-    const matched = g.titles.filter(t => scripts.find(s2=>s2.title===t)).length;
+    const matched = g.titles.filter(t => scripts.find(s2=>normTitle(s2.title)===normTitle(t))).length;
     const total = g.titles.length;
     const chips = g.titles.map(t => {
-      const sc2 = scripts.find(s2=>s2.title===t);
+      const sc2 = scripts.find(s2=>normTitle(s2.title)===normTitle(t));
       if (!sc2) return `<div class="chip" style="background:#fff3e0;border-color:#ffb74d;color:#bf360c;cursor:default;"><div class="chip-title">⚠ ${t}</div><div class="chip-preview">문자발송 시트에 등록되지 않음</div></div>`;
       return `<div class="chip" onclick="pickSc('${pid}',${gi},${sc2.idx})"><div class="chip-title">${sc2.title}</div><div class="chip-preview">${sc2.content}</div></div>`;
     }).join('');
