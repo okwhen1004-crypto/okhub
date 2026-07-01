@@ -1252,6 +1252,7 @@ body {
     <button class="view-btn active" id="view-main" onclick="switchView('main')">📋 주문관리</button>
     <button class="view-btn" id="view-fastro-calc" onclick="openFastroCalcModal()" style="border-color:#7b1fa2;color:#7b1fa2;font-weight:700;">📦 운송비</button>
     <button class="view-btn" id="view-stats" onclick="switchView('stats')">📊 통계</button>
+    <button class="view-btn" id="view-naver-limit" onclick="switchView('naverLimit')" style="border-color:#03C75A;color:#03C75A;font-weight:700;">📦 상품한도</button>
     <button class="view-btn" id="view-cookie" onclick="openCookieModal()" style="border-color:#ff9800;color:#ff9800;font-weight:700;">🔑 쿠키 갱신</button>
   </div>
   <div class="month-tab-bar" id="month-tab-bar"></div>
@@ -1331,6 +1332,21 @@ body {
   </div>
   <div class="header-sub" id="hd-sub" style="display:none;"></div>
 </div>
+<div id="naver-limit-page" style="display:none;padding:20px;max-width:1200px;margin:0 auto;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <h2 style="font-size:18px;font-weight:700;color:#37474f;">📦 스마트스토어 상품등록 한도 현황</h2>
+    <button onclick="loadNaverLimit()" id="naver-limit-refresh"
+      style="padding:8px 16px;background:#03C75A;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;">
+      🔄 새로고침
+    </button>
+  </div>
+  <div id="naver-limit-content">
+    <div style="text-align:center;padding:60px;color:#9e9e9e;font-size:14px;">
+      🔄 버튼을 눌러 현황을 조회하세요
+    </div>
+  </div>
+</div>
+
 <div id="stats-page" class="stats-page" style="display:none;">
   <div class="stats-section">
     <h3>📊 통계 대시보드</h3>
@@ -5650,6 +5666,253 @@ const STATS_BIZ_LIST = [
   { id: '9', name: '에이비', icon: '🏪' },
 ];
 
+// ═══════════════════════════════════════════════════════
+// ★ 네이버 상품등록 한도 대시보드 (수동입력 방식)
+// ═══════════════════════════════════════════════════════
+let _limitDetailMap = {};
+// ★ 오케이허브 9개 사업자와 1:1 매핑 (ssId 1~9 순서)
+const NAVER_STORE_NAMES = ['웰','후','웨','웨어','와이','하우','휴먼','터치','에이비'];
+
+async function loadNaverLimit() {
+  const content = document.getElementById('naver-limit-content');
+  const btn = document.getElementById('naver-limit-refresh');
+  content.innerHTML = '<div style="text-align:center;padding:40px;color:#666;"><div class="spinner" style="margin:0 auto 12px;"></div>불러오는 중...</div>';
+  if (btn) { btn.textContent = '⏳ 조회중...'; btn.disabled = true; }
+  try {
+    const detailRes = await jsonp(GAS_BASE + '?action=getLimitDetail');
+    _limitDetailMap = (detailRes && detailRes.success) ? detailRes.map : {};
+    const list = NAVER_STORE_NAMES.map(name => ({ name, status: 'ok', current: 0, limit: 0, pct: 0, grade: '' }));
+    renderNaverLimit({ list, updatedAt: '' });
+  } catch(e) {
+    content.innerHTML = `<div class="err">❌ ${e.message}</div>`;
+  } finally {
+    if (btn) { btn.textContent = '🔄 새로고침'; btn.disabled = false; }
+  }
+}
+
+function toggleLimitDetailBox(safeId, mallName) {
+  const box = document.getElementById('box-' + safeId);
+  if (!box) return;
+  const opening = box.style.display === 'none';
+  box.style.display = opening ? 'block' : 'none';
+  if (opening) {
+    const ta = document.getElementById('ta-' + safeId);
+    const existing = _limitDetailMap[mallName];
+    if (ta && existing && existing.rawText) ta.value = existing.rawText;
+    setTimeout(() => { if (ta) ta.focus(); }, 50);
+  }
+}
+
+function parseLimitDetailText(text) {
+  text = String(text || '').replace(/\r/g, '');
+
+  function numAfter(idx, label, maxLen) {
+    if (idx < 0) return null;
+    const seg = text.slice(idx + label.length, idx + label.length + (maxLen || 60));
+    const m = seg.match(/([\d,]+(?:\.\d+)?)\s*(만|천)?\s*(개(?!월)|원|건|%)/);
+    if (!m) return null;
+    let num = parseFloat(m[1].replace(/,/g, ''));
+    if (m[2] === '만') num *= 10000;
+    else if (m[2] === '천') num *= 1000;
+    return num;
+  }
+  function pick(label, maxLen) {
+    return numAfter(text.indexOf(label), label, maxLen);
+  }
+
+  // 이번달 한도: "상품 등록 한도" 구간 안에서 "이번달" 다음 숫자
+  let limitMonth = null;
+  const baseIdx = text.indexOf('상품 등록 한도');
+  if (baseIdx >= 0) {
+    const seg = text.slice(baseIdx, baseIdx + 200);
+    const idx2 = seg.indexOf('이번달');
+    if (idx2 >= 0) {
+      const seg2 = seg.slice(idx2 + 3, idx2 + 43);
+      const m = seg2.match(/([\d,]+)\s*(만|천)?\s*개(?!월)/);
+      if (m) {
+        limitMonth = parseFloat(m[1].replace(/,/g, ''));
+        if (m[2] === '만') limitMonth *= 10000;
+        else if (m[2] === '천') limitMonth *= 1000;
+      }
+    }
+  }
+  if (limitMonth == null) limitMonth = pick('이번달');
+
+  const revenue3mo = pick('거래액(최근 3개월)') ?? pick('거래액');
+  const orders3mo  = pick('판매 건수(최근 3개월)') ?? pick('판매 건수');
+  const ratioMonth = pick('판매 상품 비중(이번달)');
+  const saleCount  = pick('판매 상품 수');
+  const avgRegCount = pick('평균 등록 상품 수');
+
+  // 판매 상품 비중(전일): "(전일)" 라벨 기준으로 직접 탐색
+  let ratioYesterday = null;
+  const yIdx = text.indexOf('(전일)');
+  if (yIdx >= 0) {
+    const seg = text.slice(yIdx, yIdx + 60);
+    const m = seg.match(/([\d.]+)\s*%/);
+    if (m) ratioYesterday = parseFloat(m[1]);
+  }
+
+  // 등록 상품 수(HH:MM:SS) - 시각(콜론) 포함된 패턴만 매칭해 평균등록상품수와 구분
+  let regCount = null, regTime = null;
+  const regMatch = text.match(/등록 상품 수\s*\(([\d:]+)\)/);
+  if (regMatch) {
+    regTime = regMatch[1];
+    const afterIdx = text.indexOf(regMatch[0]) + regMatch[0].length;
+    const seg = text.slice(afterIdx, afterIdx + 30);
+    const nm = seg.match(/([\d,]+)\s*개/);
+    if (nm) regCount = parseInt(nm[1].replace(/,/g, ''));
+  }
+
+  return { limitMonth, revenue3mo, orders3mo, ratioMonth, saleCount, avgRegCount, ratioYesterday, regCount, regTime };
+}
+
+async function saveLimitDetailBox(safeId, mallName) {
+  const ta = document.getElementById('ta-' + safeId);
+  const rawText = ta ? ta.value.trim() : '';
+  if (!rawText) { showToast('⚠ 붙여넣을 내용이 없습니다'); return; }
+  const detail = parseLimitDetailText(rawText);
+  const parsedCount = Object.values(detail).filter(v => v !== null && v !== undefined).length;
+  if (parsedCount === 0) {
+    showToast('⚠ 인식된 항목이 없습니다. 텍스트 형식을 확인해주세요');
+    return;
+  }
+  try {
+    const r = await jsonp(GAS_BASE + '?action=saveLimitDetail'
+      + '&mallName=' + encodeURIComponent(mallName)
+      + '&detailJson=' + encodeURIComponent(JSON.stringify(detail))
+      + '&rawText=' + encodeURIComponent(rawText));
+    if (r && r.success) {
+      _limitDetailMap[mallName] = { detail: detail, rawText: rawText, savedAt: r.savedAt };
+      showToast('✅ 저장됨 (' + parsedCount + '개 항목 인식)');
+      document.getElementById('box-' + safeId).style.display = 'none';
+      loadNaverLimit();
+    } else {
+      showToast('⚠ 저장 실패: ' + (r && r.error ? r.error : ''));
+    }
+  } catch(e) {
+    showToast('⚠ 저장 실패: ' + e.message);
+  }
+}
+
+function renderNaverLimit(data) {
+  const list = data.list || [];
+  const gradeKor = { SEED:'씨앗', SPROUT:'새싹', POWER:'파워', BIG_POWER:'빅파워', PREMIUM:'프리미엄', PLATINUM:'플래티넘' };
+  const fillColor  = pct => pct >= 90 ? '#E24B4A' : pct >= 70 ? '#EF9F27' : '#1D9E75';
+  const statusText = pct => pct >= 90 ? '⚠️ 위험' : pct >= 70 ? '주의' : '여유';
+
+  // 사업장별 정보 보강: 스크래핑(붙여넣기) 데이터 우선 사용
+  const enriched = list.map(s => {
+    const detailInfo = _limitDetailMap[s.name];
+    const d = detailInfo ? detailInfo.detail : null;
+    const useScraped = d && d.regCount != null && d.limitMonth != null && d.limitMonth > 0;
+    const dispCurrent = useScraped ? d.regCount : s.current;
+    const dispLimit   = useScraped ? d.limitMonth : s.limit;
+    const dispPct     = dispLimit > 0 ? Math.round(dispCurrent / dispLimit * 100) : 0;
+    return { s, d, detailInfo, dispCurrent, dispLimit, dispPct, hasData: dispLimit > 0 };
+  });
+
+  const withData = enriched.filter(e => e.hasData);
+  const totalCurrent = withData.reduce((a, e) => a + e.dispCurrent, 0);
+  const totalLimit   = withData.reduce((a, e) => a + e.dispLimit, 0);
+  const dangerCount  = withData.filter(e => e.dispPct >= 90).length;
+  const warnCount    = withData.filter(e => e.dispPct >= 70 && e.dispPct < 90).length;
+
+  let html = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+      <div style="background:#f5f5f5;border-radius:8px;padding:16px;">
+        <div style="font-size:12px;color:#888;margin-bottom:4px;">전체 사업장</div>
+        <div style="font-size:22px;font-weight:700;">${list.length}개</div>
+        <div style="font-size:11px;color:#9e9e9e;">데이터 입력: ${withData.length}개</div>
+      </div>
+      <div style="background:#f5f5f5;border-radius:8px;padding:16px;">
+        <div style="font-size:12px;color:#888;margin-bottom:4px;">전체 등록 상품</div>
+        <div style="font-size:22px;font-weight:700;">${totalCurrent.toLocaleString()}</div>
+        <div style="font-size:11px;color:#9e9e9e;">/ 한도합계 ${totalLimit.toLocaleString()}개</div>
+      </div>
+      <div style="background:${dangerCount>0?'#ffebee':'#f5f5f5'};border-radius:8px;padding:16px;">
+        <div style="font-size:12px;color:#888;margin-bottom:4px;">주의 필요</div>
+        <div style="font-size:22px;font-weight:700;color:${dangerCount>0?'#c62828':'#2e7d32'};">
+          ${dangerCount > 0 ? '⚠️ ' + dangerCount + '개' : '✅ 없음'}
+        </div>
+        <div style="font-size:11px;color:#9e9e9e;">70%↑ 경고 ${warnCount}개</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;">`;
+
+  enriched.forEach(({ s, d, detailInfo, dispCurrent, dispLimit, dispPct }) => {
+    const safeId = 'ld_' + s.name.replace(/[^a-zA-Z0-9가-힣]/g, '');
+
+    const dispRemain  = dispLimit - dispCurrent;
+    const color = fillColor(dispPct);
+    const gradeStr  = gradeKor[s.grade] || s.grade || '';
+    html += `
+      <div style="background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;padding:16px 18px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div style="font-size:14px;font-weight:600;">${s.name}</div>
+          ${gradeStr ? `<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:#e8f5e9;color:#2e7d32;font-weight:600;">${gradeStr}</span>` : ''}
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:#666;margin-bottom:5px;">
+          <span>등록 <strong style="color:#212121;">${dispCurrent.toLocaleString()}개</strong></span>
+          <span style="font-weight:700;color:${color};">${dispPct}%</span>
+        </div>
+        <div style="height:7px;background:#f0f0f0;border-radius:99px;overflow:hidden;margin-bottom:6px;">
+          <div style="height:100%;width:${Math.min(dispPct,100)}%;background:${color};border-radius:99px;transition:width .6s;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#9e9e9e;margin-bottom:8px;">
+          <span style="color:${color};font-weight:600;">${statusText(dispPct)}</span>
+          <span>잔여 ${dispRemain.toLocaleString()}개 / 한도 ${dispLimit.toLocaleString()}개</span>
+        </div>
+        ${d ? `
+        ${(d.ratioYesterday!=null || d.regCount!=null) ? `
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          ${d.ratioYesterday!=null ? (() => {
+            const ok = d.ratioYesterday >= 3.0;
+            const bg = ok ? '#e3f2fd' : '#ffebee';
+            const bd = ok ? '#90caf9' : '#ef9a9a';
+            const tx = ok ? '#0d47a1' : '#c62828';
+            return `
+          <div style="flex:1;background:${bg};border:1px solid ${bd};border-radius:8px;padding:8px 6px;text-align:center;">
+            <div style="font-size:10px;color:${tx};font-weight:700;">판매비중(전일)</div>
+            <div style="font-size:19px;font-weight:800;color:${tx};">${d.ratioYesterday}%</div>
+          </div>`;
+          })() : ''}
+          ${d.regCount!=null ? `
+          <div style="flex:1;background:#e3f2fd;border:1px solid #90caf9;border-radius:8px;padding:8px 6px;text-align:center;">
+            <div style="font-size:10px;color:#0d47a1;font-weight:700;">등록상품수${d.regTime?'('+d.regTime+')':''}</div>
+            <div style="font-size:19px;font-weight:800;color:#0d47a1;">${d.regCount.toLocaleString()}개</div>
+          </div>` : ''}
+        </div>` : ''}
+        <div style="border-top:1px dashed #eee;padding-top:8px;font-size:11px;color:#555;display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;">
+          ${d.limitMonth!=null ? `<div>이번달 한도 <strong>${d.limitMonth.toLocaleString()}개</strong></div>` : ''}
+          ${d.revenue3mo!=null ? `<div>거래액(3개월) <strong>${d.revenue3mo.toLocaleString()}원</strong></div>` : ''}
+          ${d.orders3mo!=null ? `<div>판매건수(3개월) <strong>${d.orders3mo.toLocaleString()}건</strong></div>` : ''}
+          ${d.ratioMonth!=null ? `<div>판매비중(이번달) <strong>${d.ratioMonth}%</strong></div>` : ''}
+          ${d.saleCount!=null ? `<div>판매상품수 <strong>${d.saleCount.toLocaleString()}개</strong></div>` : ''}
+          ${d.avgRegCount!=null ? `<div>평균등록상품수 <strong>${d.avgRegCount.toLocaleString()}개</strong></div>` : ''}
+        </div>
+        <div style="font-size:10px;color:#bbb;text-align:right;margin-top:4px;">입력: ${detailInfo.savedAt}</div>
+        ` : ''}
+        <div style="margin-top:8px;text-align:right;">
+          <button onclick="toggleLimitDetailBox('${safeId}','${s.name.replace(/'/g,"\\'")}')" style="font-size:11px;color:#1976D2;background:none;border:none;cursor:pointer;padding:2px 4px;">📋 ${d ? '상세 수정' : '상세 붙여넣기'}</button>
+        </div>
+        <div id="box-${safeId}" style="display:none;margin-top:8px;">
+          <textarea id="ta-${safeId}" placeholder="네이버 셀러센터 '상품등록 한도' 페이지 내용을 그대로 복사해서 붙여넣어 주세요" style="width:100%;min-height:90px;font-size:11px;padding:8px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;resize:vertical;"></textarea>
+          <div style="display:flex;gap:6px;margin-top:6px;">
+            <button onclick="saveLimitDetailBox('${safeId}','${s.name.replace(/'/g,"\\'")}')" style="flex:1;padding:7px;background:#1976D2;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">저장</button>
+            <button onclick="document.getElementById('box-${safeId}').style.display='none'" style="padding:7px 12px;background:#eee;color:#666;border:none;border-radius:6px;font-size:12px;cursor:pointer;">취소</button>
+          </div>
+        </div>
+      </div>`;
+  });
+
+  html += `</div>
+    <div style="margin-top:14px;font-size:11px;color:#bbb;text-align:right;">
+      씨앗/새싹 10,000개 · 파워 이상 50,000개 (참고용) · 각 카드 우측 하단에서 상세정보 입력/수정
+    </div>`;
+  document.getElementById('naver-limit-content').innerHTML = html;
+}
+
 function switchView(view) {
   const mainHeader = document.querySelector('.month-tab-bar');
   const searchBar = document.querySelector('.search-bar');
@@ -5663,17 +5926,34 @@ function switchView(view) {
     if (searchBar) searchBar.style.display = 'none';
     if (content) content.style.display = 'none';
     if (statsPage) statsPage.style.display = 'block';
-    btnMain.classList.remove('active');
+    const nlPage0 = document.getElementById('naver-limit-page');
+    if (nlPage0) nlPage0.style.display = 'none';
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
     btnStats.classList.add('active');
     // ★ 통합 렌더링: 요약 카드 + 상세 (일자별/월별 토글)
     renderUnifiedStats();
+  } else if (view === 'naverLimit') {
+    if (mainHeader) mainHeader.style.display = 'none';
+    if (searchBar) searchBar.style.display = 'none';
+    if (content) content.style.display = 'none';
+    if (statsPage) statsPage.style.display = 'none';
+    const nlPage = document.getElementById('naver-limit-page');
+    if (nlPage) nlPage.style.display = 'block';
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+    const btnNaverLimit = document.getElementById('view-naver-limit');
+    if (btnNaverLimit) btnNaverLimit.classList.add('active');
+    loadNaverLimit();
   } else {
     if (mainHeader) mainHeader.style.display = '';
     if (searchBar) searchBar.style.display = '';
     if (content) content.style.display = '';
     if (statsPage) statsPage.style.display = 'none';
+    const nlPage2 = document.getElementById('naver-limit-page');
+    if (nlPage2) nlPage2.style.display = 'none';
     btnMain.classList.add('active');
     btnStats.classList.remove('active');
+    const btnNaverLimit2 = document.getElementById('view-naver-limit');
+    if (btnNaverLimit2) btnNaverLimit2.classList.remove('active');
   }
 }
 
