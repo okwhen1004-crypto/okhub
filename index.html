@@ -5777,21 +5777,60 @@ async function saveLimitDetailBox(safeId, mallName) {
     showToast('⚠ 인식된 항목이 없습니다. 텍스트 형식을 확인해주세요');
     return;
   }
-  try {
-    const r = await jsonp(GAS_BASE + '?action=saveLimitDetail'
+
+  const saveBtn = document.querySelector('#box-' + safeId + ' button[onclick^="saveLimitDetailBox"]');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '저장 중...'; }
+
+  async function trySave() {
+    return jsonp(GAS_BASE + '?action=saveLimitDetail'
       + '&mallName=' + encodeURIComponent(mallName)
       + '&detailJson=' + encodeURIComponent(JSON.stringify(detail))
       + '&rawText=' + encodeURIComponent(rawText));
+  }
+
+  // ★ 텍스트가 길면(네이버 페이지 전체 복사) 요청이 느려지거나 타임아웃될 수 있는데,
+  //   이 경우 서버는 이미 저장을 끝냈는데 브라우저만 실패로 착각하는 경우가 많음.
+  //   → 실패로 보이면 서버에 실제로 저장됐는지 재확인 후 판단.
+  async function verifyReallySaved() {
+    try {
+      const check = await jsonp(GAS_BASE + '?action=getLimitDetail');
+      const saved = check && check.success && check.map && check.map[mallName];
+      return !!(saved && saved.rawText === rawText);
+    } catch (e2) {
+      return false;
+    }
+  }
+
+  try {
+    let r = await trySave();
     if (r && r.success) {
       _limitDetailMap[mallName] = { detail: detail, rawText: rawText, savedAt: r.savedAt };
       showToast('✅ 저장됨 (' + parsedCount + '개 항목 인식)');
       document.getElementById('box-' + safeId).style.display = 'none';
       loadNaverLimit();
+      return;
+    }
+    // 응답은 왔는데 success가 아님 → 실제 저장 여부 재확인
+    const reallySaved = await verifyReallySaved();
+    if (reallySaved) {
+      showToast('✅ 저장됨 (' + parsedCount + '개 항목 인식)');
+      document.getElementById('box-' + safeId).style.display = 'none';
+      loadNaverLimit();
     } else {
-      showToast('⚠ 저장 실패: ' + (r && r.error ? r.error : ''));
+      showToast('⚠ 저장 실패: ' + (r && r.error ? r.error : '알 수 없음'));
     }
   } catch(e) {
-    showToast('⚠ 저장 실패: ' + e.message);
+    // 요청 자체가 타임아웃/오류 → 서버에 실제로는 저장됐을 수 있으니 재확인
+    const reallySaved = await verifyReallySaved();
+    if (reallySaved) {
+      showToast('✅ 저장됨 (' + parsedCount + '개 항목 인식)');
+      document.getElementById('box-' + safeId).style.display = 'none';
+      loadNaverLimit();
+    } else {
+      showToast('⚠ 저장 실패: ' + e.message);
+    }
+  } finally {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '저장'; }
   }
 }
 
