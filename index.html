@@ -1803,17 +1803,18 @@ function trackKdong(invoice) {
   window.open(url, '_blank');
 }
   
-// 운송장번호 클립보드 복사
-function copyFastroInvoice(invoice) {
+// 운송장번호 등 클립보드 복사 (label 생략 시 '운송장번호')
+function copyFastroInvoice(invoice, label) {
   if (!invoice) return;
+  const msg = (label || '운송장번호') + ' 복사됨';
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(invoice).then(() => fastroToast('운송장번호 복사됨'));
+      navigator.clipboard.writeText(invoice).then(() => fastroToast(msg));
     } else {
       const ta = document.createElement('textarea');
       ta.value = invoice; document.body.appendChild(ta);
       ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-      fastroToast('운송장번호 복사됨');
+      fastroToast(msg);
     }
   } catch(e) { fastroToast('복사 실패'); }
 }
@@ -4297,9 +4298,15 @@ function cardHtml(c, idx, totalCount) {
           // 경동택배가 있으면 경동을 우선 표시 (마지막 단계 배송)
           // CJ는 경동이 없을 때만 표시 (한국 도착 후 경동 발송 전)
          if (fastroInfo.kdongInvoice) {
-            html += `<div class="fastro-invoice-line kdong-color" onclick="event.stopPropagation();trackKdong('${fastroInfo.kdongInvoice}')" style="cursor:pointer;text-decoration:underline;" title="클릭하여 경동택배 조회">경동 ${fastroInfo.kdongInvoice} 🔍</div>`;
+            html += `<div class="fastro-invoice-line kdong-color" style="display:flex;align-items:center;gap:4px;">
+              <span onclick="event.stopPropagation();trackKdong('${fastroInfo.kdongInvoice}')" style="cursor:pointer;text-decoration:underline;" title="클릭하여 경동택배 조회">경동 ${fastroInfo.kdongInvoice} 🔍</span>
+              <span onclick="event.stopPropagation();copyFastroInvoice('${fastroInfo.kdongInvoice}','경동 운송장번호')" title="운송장번호 복사" style="cursor:pointer;opacity:0.6;font-size:12px;flex-shrink:0;">📋</span>
+            </div>`;
           } else if (fastroInfo.invoice) {
-            html += `<div class="fastro-invoice-line" onclick="event.stopPropagation();trackCJ('${fastroInfo.invoice}')" style="cursor:pointer;text-decoration:underline;" title="클릭하여 CJ대한통운 조회">CJ ${fastroInfo.invoice} 🔍</div>`;
+            html += `<div class="fastro-invoice-line" style="display:flex;align-items:center;gap:4px;">
+              <span onclick="event.stopPropagation();trackCJ('${fastroInfo.invoice}')" style="cursor:pointer;text-decoration:underline;" title="클릭하여 CJ대한통운 조회">CJ ${fastroInfo.invoice} 🔍</span>
+              <span onclick="event.stopPropagation();copyFastroInvoice('${fastroInfo.invoice}','CJ 운송장번호')" title="운송장번호 복사" style="cursor:pointer;opacity:0.6;font-size:12px;flex-shrink:0;">📋</span>
+            </div>`;
           }
           return html;
         })()}
@@ -4326,11 +4333,20 @@ function cardHtml(c, idx, totalCount) {
       </div>
 
       <div class="rc-hcell rc-hname ${isOrangeCell(c.hBg)?'name-orange':(isYellow(c.hBg)?'name-yellow':'')}">
-        <span class="rc-truncate" id="hname-${uid}">${c.name}</span>
-        ${(c.baejiNo && (/^SH/i.test(String(c.baejiNo).trim()) || /^\d{8}$/.test(String(c.baejiNo).trim()))) ? `<div class="rc-baeji-no">${c.baejiNo}</div>` : ''}
+        <div style="display:flex;align-items:center;gap:3px;width:100%;">
+          <span class="rc-truncate" id="hname-${uid}" style="flex:1;">${c.name}</span>
+          ${c.name ? `<span onclick="event.stopPropagation();copyFastroInvoice('${(c.name||'').replace(/'/g,"\\'")}','성함')" title="성함 복사" style="cursor:pointer;opacity:0.55;font-size:13px;flex-shrink:0;">📋</span>` : ''}
+        </div>
+        ${(c.baejiNo && (/^SH/i.test(String(c.baejiNo).trim()) || /^\d{8}$/.test(String(c.baejiNo).trim()))) ? `<div class="rc-baeji-no" style="display:flex;align-items:center;gap:3px;">
+          <span>${c.baejiNo}</span>
+          <span onclick="event.stopPropagation();copyFastroInvoice('${c.baejiNo}','배대지신청서번호')" title="배대지신청서번호 복사" style="cursor:pointer;opacity:0.6;font-size:11px;flex-shrink:0;">📋</span>
+        </div>` : ''}
       </div>
       <div class="rc-hcell rc-hprod rc-hcell-col ${isYellow(c.iBg)?'prod-yellow':''}" onclick="event.stopPropagation()">
-        <span class="rc-truncate ${c.prodNote?'rc-has-memo':''}" id="hprod-${uid}">${c.product||'-'}</span>
+        <div style="display:flex;align-items:center;gap:3px;width:100%;">
+          <span class="rc-truncate ${c.prodNote?'rc-has-memo':''}" id="hprod-${uid}" style="flex:1;">${c.product||'-'}</span>
+          ${c.product ? `<span onclick="event.stopPropagation();copyFastroInvoice('${(c.product||'').replace(/'/g,"\\'").replace(/\n/g,' ')}','상품명')" title="상품명 복사" style="cursor:pointer;opacity:0.55;font-size:13px;flex-shrink:0;">📋</span>` : ''}
+        </div>
         <div class="rc-memo-inline" id="pnote-line-${uid}" onclick="event.stopPropagation();showMemoEdit('pnote','${uid}')">${memoLineHtml(c.prodNote)}</div>
         <input class="rc-inline-memo" id="pnote-${uid}" style="display:none;"
           value="${c.prodNote||''}" placeholder="메모 입력 후 엔터..."
