@@ -4364,9 +4364,18 @@ function cardHtml(c, idx, totalCount) {
           onclick="event.stopPropagation()">
       </div>
       <div class="rc-hcell rc-hqty" id="hqty-${uid}" style="justify-content:center;font-weight:700;color:#333;">${c.qty||'-'}</div>
-      <div class="rc-hcell rc-hcustoms ${isOrange(c.lBg)?'cust-orange':''}" id="hcust-${uid}">${c.customs||'-'}</div>
-      <div class="rc-hcell rc-hphone" id="hph1-${uid}">${c.phone1||''}</div>
-      <div class="rc-hcell rc-hphone" id="hph2-${uid}">${c.phone2||''}</div>
+      <div class="rc-hcell rc-hcustoms ${isOrange(c.lBg)?'cust-orange':''}" style="display:flex;align-items:center;gap:3px;">
+        <span id="hcust-${uid}" style="flex:1;">${c.customs||'-'}</span>
+        ${c.customs ? `<span onclick="event.stopPropagation();copyFastroInvoice('${c.customs}','통관부호')" title="통관부호 복사" style="cursor:pointer;opacity:0.55;font-size:12px;flex-shrink:0;">📋</span>` : ''}
+      </div>
+      <div class="rc-hcell rc-hphone" style="display:flex;align-items:center;gap:3px;">
+        <span id="hph1-${uid}" style="flex:1;">${c.phone1||''}</span>
+        ${c.phone1 ? `<span onclick="event.stopPropagation();copyFastroInvoice('${c.phone1}','휴대폰1')" title="휴대폰1 복사" style="cursor:pointer;opacity:0.55;font-size:12px;flex-shrink:0;">📋</span>` : ''}
+      </div>
+      <div class="rc-hcell rc-hphone" style="display:flex;align-items:center;gap:3px;">
+        <span id="hph2-${uid}" style="flex:1;">${c.phone2||''}</span>
+        ${c.phone2 ? `<span onclick="event.stopPropagation();copyFastroInvoice('${c.phone2}','휴대폰2')" title="휴대폰2 복사" style="cursor:pointer;opacity:0.55;font-size:12px;flex-shrink:0;">📋</span>` : ''}
+      </div>
       <div class="rc-hcell rc-haddr rc-has-tooltip" onclick="event.stopPropagation()">
         <span class="rc-truncate" id="haddr-${uid}">${c.zipCode ? '['+c.zipCode+'] ' : ''}${c.memo2||''}</span>
         <div class="tt-box">
