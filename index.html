@@ -4377,7 +4377,10 @@ function cardHtml(c, idx, totalCount) {
         ${c.phone2 ? `<span onclick="event.stopPropagation();copyFastroInvoice('${c.phone2}','휴대폰2')" title="휴대폰2 복사" style="cursor:pointer;opacity:0.55;font-size:12px;flex-shrink:0;">📋</span>` : ''}
       </div>
       <div class="rc-hcell rc-haddr rc-has-tooltip" onclick="event.stopPropagation()">
-        <span class="rc-truncate" id="haddr-${uid}">${c.zipCode ? '['+c.zipCode+'] ' : ''}${c.memo2||''}</span>
+        <div style="display:flex;align-items:center;gap:3px;width:100%;">
+          <span class="rc-truncate" id="haddr-${uid}" style="flex:1;">${c.zipCode ? '['+c.zipCode+'] ' : ''}${c.memo2||''}</span>
+          ${c.memo2 ? `<span onclick="event.stopPropagation();copyFastroInvoice('${((c.zipCode ? '['+c.zipCode+'] ' : '') + (c.memo2||'')).replace(/'/g,"\\'")}','배송지 주소')" title="주소 복사" style="cursor:pointer;opacity:0.55;font-size:12px;flex-shrink:0;">📋</span>` : ''}
+        </div>
         <div class="tt-box">
           <div class="tt-label">📍 배송지 주소</div>
           <div class="tt-content" id="haddr-tt-${uid}" style="white-space:normal;">${c.zipCode ? '['+c.zipCode+'] ' : ''}${c.memo2||'-'}</div>
