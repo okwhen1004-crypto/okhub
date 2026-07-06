@@ -1308,8 +1308,72 @@ body {
       <option value="all">🐢 전체 검색 (모든 사업자 + 전체)</option>
     </select>
     <button class="search-refresh-btn" onclick="onRefreshSearch()" title="새 데이터로 다시 검색 (캐시 무시)">🔄</button>
+    <button onclick="toggleManualEntryPanel()" id="manual-entry-btn"
+      style="padding:0 14px;height:34px;background:#6A1B9A;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">
+      📝 직접입력
+    </button>
   </div>
   <div class="search-divider"></div>
+  <div id="manual-entry-panel" style="display:none;background:#f5eefb;border:1.5px solid #6A1B9A;border-radius:10px;padding:16px 20px;margin:0 0 12px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-size:14px;font-weight:700;color:#4A148C;">
+        📝 신규 직접입력 <span id="manual-entry-target" style="font-weight:400;color:#8e5cb8;"></span>
+      </div>
+      <span onclick="toggleManualEntryPanel()" style="cursor:pointer;color:#8e5cb8;font-size:13px;">✕ 닫기</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px 14px;">
+      <div>
+        <label style="font-size:11px;color:#6A1B9A;font-weight:700;">👤 수령자 *</label>
+        <input id="me-name" placeholder="이름" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #d9c2ea;border-radius:6px;font-size:13px;margin-top:3px;">
+      </div>
+      <div style="grid-column:span 2;">
+        <label style="font-size:11px;color:#6A1B9A;font-weight:700;">📦 상품명 *</label>
+        <input id="me-product" placeholder="상품명" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #d9c2ea;border-radius:6px;font-size:13px;margin-top:3px;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:#6A1B9A;font-weight:700;">🎨 옵션</label>
+        <input id="me-option" placeholder="옵션" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #d9c2ea;border-radius:6px;font-size:13px;margin-top:3px;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:#6A1B9A;font-weight:700;">📊 수량</label>
+        <input id="me-qty" type="number" value="1" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #d9c2ea;border-radius:6px;font-size:13px;margin-top:3px;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:#6A1B9A;font-weight:700;">📱 휴대폰1 *</label>
+        <input id="me-phone1" placeholder="01000000000" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #d9c2ea;border-radius:6px;font-size:13px;margin-top:3px;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:#6A1B9A;font-weight:700;">📱 휴대폰2</label>
+        <input id="me-phone2" placeholder="01000000000" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #d9c2ea;border-radius:6px;font-size:13px;margin-top:3px;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:#6A1B9A;font-weight:700;">🛂 통관번호</label>
+        <input id="me-customs" placeholder="P123456789012" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #d9c2ea;border-radius:6px;font-size:13px;margin-top:3px;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:#6A1B9A;font-weight:700;">📮 우편</label>
+        <input id="me-zip" placeholder="12345" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #d9c2ea;border-radius:6px;font-size:13px;margin-top:3px;">
+      </div>
+      <div style="grid-column:span 2;">
+        <label style="font-size:11px;color:#6A1B9A;font-weight:700;">📍 배송지 주소 *</label>
+        <input id="me-address" placeholder="서울시..." style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #d9c2ea;border-radius:6px;font-size:13px;margin-top:3px;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:#6A1B9A;font-weight:700;">💰 결제금액 (Q) *</label>
+        <input id="me-payAmt" type="number" value="0" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #d9c2ea;border-radius:6px;font-size:13px;margin-top:3px;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:#6A1B9A;font-weight:700;">📗 정산예정 (U)</label>
+        <input id="me-settleAmt" type="number" value="0" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #d9c2ea;border-radius:6px;font-size:13px;margin-top:3px;">
+      </div>
+      <div style="grid-column:span 2;display:flex;align-items:flex-end;">
+        <button id="manual-entry-submit" onclick="submitManualOrder()"
+          style="width:100%;padding:10px;background:#6A1B9A;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;">
+          💾 등록
+        </button>
+      </div>
+    </div>
+  </div>
   <div class="search-progress-bar" id="search-progress-bar" style="display:none;">
     <div class="sp-text">
       <span class="sp-spinner">⏳</span>
@@ -2023,6 +2087,104 @@ function buildMonthTabs(months, currentMonth) {
   // 현재 탭 스크롤
   const cur = document.getElementById('mtab-' + currentMonth.replace(/ /g,'_'));
   if (cur) setTimeout(() => cur.scrollIntoView({inline:'center', block:'nearest'}), 100);
+}
+
+// ═══════════════════════════════════════════════════════
+// ★ 신규 직접입력 (주문 정보 수동 등록) - 모다허브 참고 이식
+// ═══════════════════════════════════════════════════════
+function toggleManualEntryPanel() {
+  const panel = document.getElementById('manual-entry-panel');
+  if (!panel) return;
+  const opening = panel.style.display === 'none';
+  panel.style.display = opening ? 'block' : 'none';
+  if (opening) {
+    const targetSheet = (selectedMonth && selectedMonth !== 'all') ? selectedMonth : monthSheetName;
+    const bizName = (document.querySelector('.biz-btn.active') || {}).textContent || '';
+    document.getElementById('manual-entry-target').textContent = '→ ' + bizName.trim() + ' / ' + targetSheet + ' 에 추가';
+    const first = document.getElementById('me-name');
+    if (first) setTimeout(() => first.focus(), 50);
+  }
+}
+
+function clearManualEntryForm() {
+  ['me-name','me-product','me-option','me-customs','me-zip','me-address'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const q = document.getElementById('me-qty'); if (q) q.value = '1';
+  const p1 = document.getElementById('me-phone1'); if (p1) p1.value = '';
+  const p2 = document.getElementById('me-phone2'); if (p2) p2.value = '';
+  const pay = document.getElementById('me-payAmt'); if (pay) pay.value = '0';
+  const settle = document.getElementById('me-settleAmt'); if (settle) settle.value = '0';
+}
+
+async function submitManualOrder() {
+  const name      = (document.getElementById('me-name').value || '').trim();
+  const product   = (document.getElementById('me-product').value || '').trim();
+  const option    = (document.getElementById('me-option').value || '').trim();
+  const qty       = (document.getElementById('me-qty').value || '1').trim();
+  const phone1    = (document.getElementById('me-phone1').value || '').trim();
+  const phone2    = (document.getElementById('me-phone2').value || '').trim();
+  const customs   = (document.getElementById('me-customs').value || '').trim();
+  const zipCode   = (document.getElementById('me-zip').value || '').trim();
+  const address   = (document.getElementById('me-address').value || '').trim();
+  const payAmt    = (document.getElementById('me-payAmt').value || '').trim();
+  const settleAmt = (document.getElementById('me-settleAmt').value || '').trim();
+
+  if (!name)    { showToast('⚠ 수령자를 입력해주세요'); return; }
+  if (!product) { showToast('⚠ 상품명을 입력해주세요'); return; }
+  if (!phone1)  { showToast('⚠ 휴대폰1을 입력해주세요'); return; }
+  if (!address) { showToast('⚠ 배송지 주소를 입력해주세요'); return; }
+  if (!payAmt)  { showToast('⚠ 결제금액을 입력해주세요'); return; }
+
+  const targetSheet = (selectedMonth && selectedMonth !== 'all') ? selectedMonth : monthSheetName;
+  const btn = document.getElementById('manual-entry-submit');
+  if (btn) { btn.disabled = true; btn.textContent = '등록 중...'; }
+
+  try {
+    const r = await jsonp(GAS_BASE + '?action=addManualOrder&ssId=' + encodeURIComponent(currentBiz)
+      + '&sheetName=' + encodeURIComponent(targetSheet)
+      + '&name=' + encodeURIComponent(name)
+      + '&product=' + encodeURIComponent(product)
+      + '&option=' + encodeURIComponent(option)
+      + '&qty=' + encodeURIComponent(qty)
+      + '&phone1=' + encodeURIComponent(phone1)
+      + '&phone2=' + encodeURIComponent(phone2)
+      + '&customs=' + encodeURIComponent(customs)
+      + '&zipCode=' + encodeURIComponent(zipCode)
+      + '&address=' + encodeURIComponent(address)
+      + '&payAmt=' + encodeURIComponent(payAmt)
+      + '&settleAmt=' + encodeURIComponent(settleAmt));
+    if (r && r.success) {
+      showToast('✅ 등록 완료 (' + r.sheetName + ' 행 ' + r.row + ')');
+      clearManualEntryForm();
+      toggleManualEntryPanel();
+      await reloadCurrentMonthData();
+    } else {
+      showToast('⚠ 등록 실패: ' + (r && r.error ? r.error : '알 수 없음'));
+    }
+  } catch(e) {
+    showToast('⚠ 등록 실패: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '💾 등록'; }
+  }
+}
+
+// ★ 현재 보고 있는 월 데이터를 강제로 다시 불러옴 (selectMonth는 동일 월이면 무시하므로 별도 헬퍼)
+async function reloadCurrentMonthData() {
+  const targetSheet = (selectedMonth && selectedMonth !== 'all') ? selectedMonth : monthSheetName;
+  document.getElementById('content').innerHTML = '<div class="loading"><div class="spinner"></div><div>' + targetSheet + ' 불러오는 중...</div></div>';
+  try {
+    const r = await jsonp(GAS_BASE + '?action=getMonthData&ssId=' + currentBiz + '&sheetName=' + encodeURIComponent(targetSheet));
+    if (r.error) throw new Error(r.error);
+    monthData = r.list || [];
+    monthData.forEach(m => { if (!m.message) m.message = makeDefaultMessage(m); });
+    document.getElementById('hd-sub').textContent = targetSheet + ' · ' + monthData.length + '명';
+    monthPage = 1;
+    updateHeaderStats();
+    renderMonthPage();
+  } catch(err) {
+    document.getElementById('content').innerHTML = '<div class="err">❌ ' + err.message + '</div>';
+  }
 }
 
 async function selectMonth(month, noReset) {
